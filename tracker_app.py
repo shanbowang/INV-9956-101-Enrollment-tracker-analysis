@@ -300,8 +300,28 @@ if 'Cohort(mg)' in df.columns and 'AR+/-' in df.columns:
         st.dataframe(dose_ar_pivot.fillna(0).astype(int), width="stretch")
         report_sections.append(("3. 剂量组 × AR 状态分析", df_to_markdown_table(dose_ar_pivot.fillna(0).astype(int))))
 
-# ========== 4. Phase × 剂量 × 状态分布表 ==========
-st.header("4. Phase × 剂量 × 状态分布表")
+# ========== 4. 剂量组 × 状态分布表 ==========
+st.header("4. 剂量组 × 状态分布表")
+if 'Status' in df.columns:
+    if 'Cohort(mg)' in df.columns:
+        df['剂量组'] = df['Cohort(mg)'].astype(str).replace('nan', 'Pending')
+        df.loc[df['剂量组'] == 'Pending', '剂量组'] = 'Pending'
+    else:
+        df['剂量组'] = 'Pending'
+    
+    status_pivot_simple = pd.crosstab(df['剂量组'], df['Status'])
+    
+    status_pivot_simple['总计'] = status_pivot_simple.sum(axis=1)
+    
+    status_pivot_simple.loc['总计'] = status_pivot_simple.sum(axis=0)
+    
+    st.dataframe(status_pivot_simple, width="stretch")
+    report_sections.append(("4. 剂量组 × 状态分布表", df_to_markdown_table(status_pivot_simple)))
+else:
+    st.info("📊 未找到 'Status' 列")
+
+# ========== 5. Phase × 剂量 × 状态分布表 ==========
+st.header("5. Phase × 剂量 × 状态分布表")
 if 'Phase' in df.columns and 'Status' in df.columns and 'Cohort(mg)' in df.columns:
     dose_status_data = df[df['Cohort(mg)'].notna()].copy()
 
@@ -410,7 +430,7 @@ else:
     st.info("📊 当前数据中没有筛选失败的受试者")
 
 # ========== 7. B组停止前后对比 ==========
-st.header("7. B组停止前后筛选成功率对比（2026-04-07）")
+st.header("8. B组停止前后筛选成功率对比（2026-04-07）")
 if 'Date ICF' in df.columns:
     cutoff_date = pd.Timestamp('2026-04-07')
 
@@ -425,7 +445,7 @@ if 'Date ICF' in df.columns:
     period_comparison['筛选失败率'] = (period_comparison['筛选失败'] / period_comparison['筛选'] * 100).round(1)
 
     st.dataframe(period_comparison, width="stretch")
-    report_sections.append(("7. B组停止前后对比", df_to_markdown_table(period_comparison)))
+    report_sections.append(("8. B组停止前后对比", df_to_markdown_table(period_comparison)))
 
 # ========== 8. All Subjects Cohorts 分析 ==========
 st.header("8. All Subjects Cohorts 分析")
@@ -450,7 +470,7 @@ else:
     st.info("📊 未找到 'All subjects cohorts' 或 'Cohort(mg)' 列")
 
 # ========== 9. 在组时间游泳图（分5mg/10mg）==========
-st.header("9. 在组时间游泳图（按剂量分组）")
+st.header("10. 在组时间游泳图（按剂量分组）")
 if 'C1D1' in df.columns and 'Latest Date' in df.columns and 'Cohort(mg)' in df.columns:
     time_data = df[(df['C1D1'].notna()) & (df['Latest Date'].notna())].copy()
 
@@ -543,7 +563,7 @@ if 'EOT reson type' in df.columns and 'Status' in df.columns:
         st.info("📊 当前数据中没有 EOT 的受试者")
 
 # ========== 11. 疗效数据（按剂量和AR状态）==========
-st.header("11. 疗效数据（按剂量和AR状态）")
+st.header("12. 疗效数据（按剂量和AR状态）")
 if 'Best Response' in df.columns and 'Cohort(mg)' in df.columns:
     response_data = df[df['Best Response'].notna()].copy()
 
@@ -588,7 +608,7 @@ if 'Best Response' in df.columns and 'Cohort(mg)' in df.columns:
             response_pivot['DCR(%)'] = response_pivot['DCR(%)'].round(1)
 
             st.dataframe(response_pivot, width="stretch")
-            report_sections.append(("11. 疗效数据", df_to_markdown_table(response_pivot)))
+            report_sections.append(("12. 疗效数据", df_to_markdown_table(response_pivot)))
     else:
         st.info("📊 当前数据中没有疗效评估结果")
 
@@ -608,7 +628,7 @@ if 'Protocol' in df.columns:
         st.info("📊 当前数据中没有 Protocol 版本信息")
 
 # ========== 13. 来源分析 ==========
-st.header("13. 来源分析")
+st.header("14. 来源分析")
 if 'from' in df.columns:
     source_data = df[df['from'].notna()].copy()
 
@@ -671,14 +691,14 @@ if 'Country' in df.columns:
             saved_figures[f"国家筛选入组对比_{datetime.now().strftime('%Y%m%d_%H%M')}.png"] = fig_to_png(fig)
             plt.close(fig)
 
-        report_sections.append(("14. 国家筛选入组对比", df_to_markdown_table(country_stats)))
+        report_sections.append(("15. 国家筛选入组对比", df_to_markdown_table(country_stats)))
     else:
         st.info("📊 当前数据中国家信息为空")
 else:
     st.info("📊 未找到 'Country' 列")
 
 # ========== 15. 筛选时长分析 ==========
-st.header("15. 各中心筛选时长分析")
+st.header("16. 各中心筛选时长分析")
 if 'Site No.' in df.columns and 'Date ICF' in df.columns and 'C1D1' in df.columns:
     screening_time = df[(df['Date ICF'].notna()) & (df['C1D1'].notna())].copy()
 
@@ -722,7 +742,7 @@ if 'Site No.' in df.columns and 'Date ICF' in df.columns and 'C1D1' in df.column
                 saved_figures[f"各中心平均筛选时长_{datetime.now().strftime('%Y%m%d_%H%M')}.png"] = fig_to_png(fig)
                 plt.close(fig)
 
-            report_sections.append(("15. 各中心筛选时长分析", df_to_markdown_table(screening_stats)))
+            report_sections.append(("16. 各中心筛选时长分析", df_to_markdown_table(screening_stats)))
         else:
             st.info("📊 没有有效的筛选时长数据")
 
