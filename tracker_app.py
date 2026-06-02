@@ -279,6 +279,48 @@ if 'Site No.' in df.columns:
     st.dataframe(site_stats, width="stretch")
     site_stats_display = site_stats.copy()
     report_sections.append(("2. 中心筛选入组表", df_to_markdown_table(site_stats_display)))
+    
+    site_stats_for_chart = site_stats.drop('总计', errors='ignore')
+    
+    if len(site_stats_for_chart) > 0:
+        fig_site, ax_site = plt.subplots(figsize=(12, 6))
+        
+        x = range(len(site_stats_for_chart))
+        width = 0.35
+        
+        bars1 = ax_site.bar([i - width/2 for i in x], 
+                           site_stats_for_chart['筛选'], 
+                           width, 
+                           label='筛选人数', 
+                           color=COLOR_PALETTES['primary'][2], 
+                           alpha=0.8)
+        
+        bars2 = ax_site.bar([i + width/2 for i in x], 
+                           site_stats_for_chart['入组'], 
+                           width, 
+                           label='入组人数', 
+                           color=COLOR_PALETTES['health'][2], 
+                           alpha=0.8)
+        
+        ax_site.set_xlabel('中心编号', fontweight='bold')
+        ax_site.set_ylabel('人数', fontweight='bold')
+        ax_site.set_title('各中心筛选与入组人数对比', fontweight='bold', pad=15)
+        ax_site.set_xticks(x)
+        ax_site.set_xticklabels(site_stats_for_chart.index.astype(str), rotation=45, ha='right')
+        ax_site.legend(frameon=True, shadow=True)
+        ax_site.grid(True, alpha=0.3, axis='y')
+        
+        for bars in [bars1, bars2]:
+            for bar in bars:
+                height = bar.get_height()
+                if height > 0:
+                    ax_site.text(bar.get_x() + bar.get_width()/2., height,
+                               f'{int(height)}', ha='center', va='bottom', fontweight='bold', fontsize=9)
+        
+        plt.tight_layout()
+        st.pyplot(fig_site)
+        saved_figures[f"各中心筛选入组对比_{datetime.now().strftime('%Y%m%d_%H%M')}.png"] = fig_to_png(fig_site)
+        plt.close(fig_site)
 
 # ========== 3. 剂量组 × AR 状态分析 ==========
 st.header("3. 剂量组 × AR 状态分析")
