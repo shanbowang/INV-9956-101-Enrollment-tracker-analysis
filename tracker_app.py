@@ -303,6 +303,10 @@ if 'Cohort(mg)' in df.columns and 'AR+/-' in df.columns:
 # ========== 4. 剂量组 × 状态分布表 ==========
 st.header("4. 剂量组 × 状态分布表")
 if 'Status' in df.columns:
+    with st.expander("查看 Status 列的所有唯一值"):
+        status_counts = df['Status'].value_counts()
+        st.dataframe(status_counts.to_frame('人数'), width="stretch")
+    
     if 'Cohort(mg)' in df.columns:
         df['剂量组'] = df['Cohort(mg)'].astype(str).replace('nan', 'Pending')
         df.loc[df['剂量组'] == 'Pending', '剂量组'] = 'Pending'
