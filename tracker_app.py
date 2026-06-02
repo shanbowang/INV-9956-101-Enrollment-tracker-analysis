@@ -36,23 +36,38 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
+from matplotlib import font_manager
 import numpy as np
 from datetime import datetime
 import io
 import zipfile
 import seaborn as sns
 import platform
+import os
 from matplotlib.patches import Patch
 
 sns.set_style("whitegrid")
 
-system = platform.system()
-if system == "Windows":
-    plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'Arial Unicode MS']
-elif system == "Darwin":
-    plt.rcParams['font.sans-serif'] = ['PingFang SC', 'STHeiti', 'Arial Unicode MS']
-else:
-    plt.rcParams['font.sans-serif'] = ['Noto Sans CJK SC', 'WenQuanYi Micro Hei', 'DejaVu Sans']
+def setup_chinese_font():
+    FONT_DIR = os.path.join(os.path.dirname(__file__), 'fonts')
+    FONT_FILE = os.path.join(FONT_DIR, 'NotoSansCJKsc-Regular.otf')
+    
+    if os.path.exists(FONT_FILE):
+        font_manager.fontManager.addfont(FONT_FILE)
+        font_prop = font_manager.FontProperties(fname=FONT_FILE)
+        plt.rcParams['font.family'] = font_prop.get_name()
+        return font_prop
+    
+    system = platform.system()
+    if system == "Windows":
+        plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'Arial Unicode MS']
+    elif system == "Darwin":
+        plt.rcParams['font.sans-serif'] = ['PingFang SC', 'STHeiti', 'Arial Unicode MS']
+    else:
+        plt.rcParams['font.sans-serif'] = ['Noto Sans CJK SC', 'WenQuanYi Micro Hei', 'DejaVu Sans']
+    return None
+
+CHINESE_FONT = setup_chinese_font()
 plt.rcParams['axes.unicode_minus'] = False
 
 COLOR_PALETTES = {
@@ -412,17 +427,27 @@ if 'Date ICF' in df.columns:
     st.dataframe(period_comparison, width="stretch")
     report_sections.append(("7. B组停止前后对比", df_to_markdown_table(period_comparison)))
 
-# ========== 8. All subjects cohorts 分析 ==========
+# ========== 8. All Subjects Cohorts 分析 ==========
 st.header("8. All Subjects Cohorts 分析")
-if 'All subjects cohorts' in df.columns:
-    cohort_stats = df.groupby('All subjects cohorts').agg({
-        '筛选': 'sum', '入组': 'sum', '筛选失败': 'sum'
-    }).astype(int).sort_values('筛选', ascending=False)
-    cohort_stats['筛选成功率'] = (cohort_stats['入组'] / cohort_stats['筛选'] * 100).round(1)
-    st.dataframe(cohort_stats, width="stretch")
-    report_sections.append(("8. All Subjects Cohorts 分析", df_to_markdown_table(cohort_stats)))
+if 'All subjects cohorts' in df.columns and 'Cohort(mg)' in df.columns:
+    enrolled_data = df[df['入组'] == True].copy()
+    
+    if len(enrolled_data) > 0:
+        cohort_pivot = pd.crosstab(
+            enrolled_data['Cohort(mg)'],
+            enrolled_data['All subjects cohorts']
+        )
+        
+        cohort_pivot['总计'] = cohort_pivot.sum(axis=1)
+        
+        cohort_pivot.loc['总计'] = cohort_pivot.sum(axis=0)
+        
+        st.dataframe(cohort_pivot, width="stretch")
+        report_sections.append(("8. All Subjects Cohorts 分析", df_to_markdown_table(cohort_pivot)))
+    else:
+        st.info("📊 当前没有入组的受试者")
 else:
-    st.info("📊 未找到 'All subjects cohorts' 列")
+    st.info("📊 未找到 'All subjects cohorts' 或 'Cohort(mg)' 列")
 
 # ========== 9. 在组时间游泳图（分5mg/10mg）==========
 st.header("9. 在组时间游泳图（按剂量分组）")
