@@ -304,16 +304,26 @@ if 'Cohort(mg)' in df.columns and 'AR+/-' in df.columns:
 st.header("4. 剂量组 × 状态分布表")
 if 'Status' in df.columns:
     with st.expander("查看 Status 列的所有唯一值"):
-        status_counts = df['Status'].value_counts()
+        status_counts = df['Status'].value_counts(dropna=False)
         st.dataframe(status_counts.to_frame('人数'), width="stretch")
     
-    if 'Cohort(mg)' in df.columns:
-        df['剂量组'] = df['Cohort(mg)'].astype(str).replace('nan', 'Pending')
-        df.loc[df['剂量组'] == 'Pending', '剂量组'] = 'Pending'
-    else:
-        df['剂量组'] = 'Pending'
+    df_status = df.copy()
+    df_status['Status'] = df_status['Status'].fillna('Unknown')
     
-    status_pivot_simple = pd.crosstab(df['剂量组'], df['Status'])
+    if 'Cohort(mg)' in df_status.columns:
+        def format_dose(val):
+            if pd.isna(val):
+                return 'Pending'
+            try:
+                return f'{int(val)}mg'
+            except:
+                return str(val)
+        
+        df_status['剂量组'] = df_status['Cohort(mg)'].apply(format_dose)
+    else:
+        df_status['剂量组'] = 'Pending'
+    
+    status_pivot_simple = pd.crosstab(df_status['剂量组'], df_status['Status'])
     
     status_pivot_simple['总计'] = status_pivot_simple.sum(axis=1)
     
